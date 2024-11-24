@@ -1,51 +1,49 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
-from typing import Literal
 import joblib
 import numpy as np
+from fastapi.middleware.cors import CORSMiddleware
+import uvicorn
 
-# Initialize FastAPI app
+# Initialize the FastAPI app
 app = FastAPI()
 
-# Load model and supporting files
-model = joblib.load('models/best_model.pkl')
-scaler = joblib.load('models/scaler.pkl')
-label_encoders = {
-    "Area": joblib.load('models/label_encoder_area.pkl'),
-    "Element": joblib.load('models/label_encoder_element.pkl'),
-    "Item": joblib.load('models/label_encoder_item.pkl'),
-    "Unit": joblib.load('models/label_encoder_unit.pkl'),
-}
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Replace "*" with your allowed origin(s) in production
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-# Define input schema
-class PredictionRequest(BaseModel):
-    Area: str
-    Element: Literal["Yield"]
-    Item: str
-    Year: int = Field(..., ge=1960, le=2025)
-    Unit: str
+# Load the saved model
+model = joblib.load('best_model.pkl')
 
-# Define prediction endpoint
+# Define the input schema using Pydantic
+class PredictionInput(BaseModel):
+    Area: int = Field(..., ge=0, description="Encoded Area category")
+    Element: int = Field(..., ge=0, description="Encoded Element category")
+    Item: int = Field(..., ge=0, description="Encoded Item category")
+    Unit: int = Field(..., ge=0, description="Encoded Unit category")
+    Year: int = Field(..., ge=1900, le=2100, description="Year of the observation")
+
+# Define the prediction endpoint
 @app.post("/predict")
-def predict(request: PredictionRequest):
-    # Encode inputs
-    inputs = [
-        label_encoders["Area"].transform([request.Area])[0],
-        label_encoders["Element"].transform([request.Element])[0],
-        label_encoders["Item"].transform([request.Item])[0],
-        request.Year,
-        label_encoders["Unit"].transform([request.Unit])[0],
-    ]
+def predict(input_data: PredictionInput):
+    """
+    Predict the value based on input features.
+    """
+    # Convert input to a NumPy array for prediction
+    features = np.array([[input_data.Area, input_data.Element, input_data.Item, input_data.Unit, input_data.Year]])
+    
+    try:
+        # Make prediction
+        prediction = model.predict(features)
+        return {"prediction": prediction[0]}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"An error occurred during prediction: {str(e)}")
 
-    # Scale inputs
-    inputs_scaled = scaler.transform([inputs])
-
-    # Predict
-    prediction = model.predict(inputs_scaled)[0]
-
-    return {"predicted_value": prediction}
-
-# Run the server
+# Run the application
 if __name__ == "__main__":
-    import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
