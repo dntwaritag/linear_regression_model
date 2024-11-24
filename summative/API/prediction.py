@@ -1,41 +1,51 @@
 from fastapi import FastAPI
 from pydantic import BaseModel, Field
+from typing import Literal
 import joblib
 import numpy as np
-from fastapi.middleware.cors import CORSMiddleware
 
-class PredictionInput(BaseModel):
-    area: float = Field(..., ge=0, le=10000, description="Area of land in hectares. Range: 0-10000")
-    year: int = Field(..., ge=2000, le=2100, description="Year of prediction. Range: 2000-2100")
-    element: str = Field(..., max_length=50, description="Element for prediction")
-    item: str = Field(..., max_length=50, description="Item to be predicted")
-    unit: str = Field(..., max_length=20, description="Unit of measurement for prediction")
-
-    class Config:
-        min_anystr_length = 1
-        anystr_strip_whitespace = True
-
+# Initialize FastAPI app
 app = FastAPI()
 
-# Allow CORS for all origins (you can restrict it to specific domains for security)
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # Allows all origins (adjust as needed)
-    allow_credentials=True,
-    allow_methods=["*"],  # Allows all HTTP methods
-    allow_headers=["*"],  # Allows all headers
-)
+# Load model and supporting files
+model = joblib.load('models/best_model.pkl')
+scaler = joblib.load('models/scaler.pkl')
+label_encoders = {
+    "Area": joblib.load('models/label_encoder_area.pkl'),
+    "Element": joblib.load('models/label_encoder_element.pkl'),
+    "Item": joblib.load('models/label_encoder_item.pkl'),
+    "Unit": joblib.load('models/label_encoder_unit.pkl'),
+}
 
-# Load your trained model (ensure you save your model as 'best_model.pkl')
-model = joblib.load('best_model.pkl')
-@app.post('/predict')
+# Define input schema
+class PredictionRequest(BaseModel):
+    Area: str
+    Element: Literal["Yield"]
+    Item: str
+    Year: int = Field(..., ge=1960, le=2025)
+    Unit: str
 
-def predict(input_data: PredictionInput):
-    # Convert the input data into a format suitable for prediction
-    input_features = np.array([[input_data.area, input_data.year, input_data.element, input_data.item, input_data.unit]])
+# Define prediction endpoint
+@app.post("/predict")
+def predict(request: PredictionRequest):
+    # Encode inputs
+    inputs = [
+        label_encoders["Area"].transform([request.Area])[0],
+        label_encoders["Element"].transform([request.Element])[0],
+        label_encoders["Item"].transform([request.Item])[0],
+        request.Year,
+        label_encoders["Unit"].transform([request.Unit])[0],
+    ]
 
-    # Make a prediction using the model
-    prediction = model.predict(input_features)
-    
-    # Return the prediction result
-    return {"prediction": prediction[0]}
+    # Scale inputs
+    inputs_scaled = scaler.transform([inputs])
+
+    # Predict
+    prediction = model.predict(inputs_scaled)[0]
+
+    return {"predicted_value": prediction}
+
+# Run the server
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
