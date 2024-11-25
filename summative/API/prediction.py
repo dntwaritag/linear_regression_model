@@ -3,47 +3,41 @@ from pydantic import BaseModel, Field
 import joblib
 import numpy as np
 from fastapi.middleware.cors import CORSMiddleware
-import uvicorn
 
-# Initialize the FastAPI app
-app = FastAPI()
+# Load the model
+model = joblib.load('best_model.pkl')
 
-# Add CORS middleware
+# Initialize the app
+app = FastAPI(title="YieldVision API", description="API for Predicting Yield", version="1.0.0")
+
+# Add CORS Middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Replace "*" with your allowed origin(s) in production
+    allow_origins=["*"],  # Update this with specific domains for production
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Load the saved model
-model = joblib.load('best_model.pkl')
-
-# Define the input schema using Pydantic
+# Define the data schema using Pydantic
 class PredictionInput(BaseModel):
-    Area: int = Field(..., ge=0, description="Encoded Area category")
-    Element: int = Field(..., ge=0, description="Encoded Element category")
-    Item: int = Field(..., ge=0, description="Encoded Item category")
-    Unit: int = Field(..., ge=0, description="Encoded Unit category")
-    Year: int = Field(..., ge=1900, le=2100, description="Year of the observation")
+    Area: int = Field(..., title="Area Code", ge=0)
+    Element: int = Field(..., title="Element Code", ge=0)
+    Item: int = Field(..., title="Item Code", ge=0)
+    Unit: int = Field(..., title="Unit Code", ge=0)
 
-# Define the prediction endpoint
-@app.post("/predict")
-def predict(input_data: PredictionInput):
-    """
-    Predict the value based on input features.
-    """
-    # Convert input to a NumPy array for prediction
-    features = np.array([[input_data.Area, input_data.Element, input_data.Item, input_data.Unit, input_data.Year]])
-    
+@app.post("/predict", summary="Predict Yield")
+async def predict(input_data: PredictionInput):
+    # Convert input into numpy array
+    input_array = np.array([input_data.Area, input_data.Element, input_data.Item, input_data.Unit]).reshape(1, -1)
+
     try:
         # Make prediction
-        prediction = model.predict(features)
-        return {"prediction": prediction[0]}
+        prediction = model.predict(input_array)
+        return {"prediction": float(prediction[0])}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"An error occurred during prediction: {str(e)}")
+        raise HTTPException(status_code=400, detail=str(e))
 
-# Run the application
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    import uvicorn
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
