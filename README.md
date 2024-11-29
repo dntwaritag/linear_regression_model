@@ -57,7 +57,8 @@ WindMetric is a comprehensive solution designed for predicting wind speed using 
 ## **Demo**
 ### **API Testing**
 Test the API directly via its Swagger UI interface:
-**Swagger UI Endpoint**
+
+**[Swagger UI Endpoint](https://linear-regression-model-sseb.onrender.com)**
 
 Open the link above.
  - Click on the '/prediction' POST endpoint.
@@ -65,6 +66,7 @@ Open the link above.
  - Execute the request and view the prediction.
 ### **Video Demo**
 Watch the video demo of the app in action on youtube:
+
 **Video Demo Link**
 
 
