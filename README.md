@@ -67,7 +67,7 @@ Open the link above.
 ### **Video Demo**
 Watch the video demo of the app in action on youtube:
 
-**Video Demo Link**
+**[Video Demo Link](https://youtu.be/zVcUsqs8j8Q)**
 
 
 ---
