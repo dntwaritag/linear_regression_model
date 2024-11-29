@@ -98,7 +98,7 @@ WindMetric is a comprehensive solution designed for predicting wind speed using 
 
 ### **API Hosting**
 - Deployed via Render or similar service at:  
-  **[Public API Endpoint]([https://linear-regression-model-sseb.onrender.com](https://linear-regression-model-sseb.onrender.com))**
+  **[Swagger UI URL Link](https://linear-regression-model-sseb.onrender.com)**
 
 ### **Flutter App Deployment**
 - Can be tested on both physical and virtual devices.
