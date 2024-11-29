@@ -54,16 +54,16 @@ WindMetric is a comprehensive solution designed for predicting wind speed using 
 ### **Dataset Source**
 - The dataset is sourced from a **[Seattle Weather Dataset](https://www.kaggle.com/code/petalme/seattle-weather-prediction/input)** hosted on a Kaggle for time series forecasting.
 
-### **Demo**
-## **API Testing**
+## **Demo**
+### **API Testing**
 Test the API directly via its Swagger UI interface:
 **Swagger UI Endpoint**
 
 Open the link above.
  - Click on the '/prediction' POST endpoint.
  - Click "Try it out" to enter input parameters.
- - Submit the request and view the prediction.
-**Video Demo**
+ - Execute the request and view the prediction.
+### **Video Demo**
 Watch the video demo of the app in action on youtube:
 **Video Demo Link**
 
